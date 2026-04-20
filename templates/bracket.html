@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .bracket-container { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
+    .round { display: flex; flex-direction: column; justify-content: space-around; height: 600px; width: 200px; }
+    .matchup { background: #222; border-radius: 8px; margin: 10px 0; display: flex; flex-direction: column; }
+    .team { padding: 10px; border: 1px solid #333; cursor: pointer; transition: 0.2s; }
+    .team:hover { background: #333; }
+    .team.selected { background: #4facfe; color: black; font-weight: bold; }
+    .finals { width: 300px; text-align: center; }
+    
+    /* NEW: Styles for the injected scores */
+    .score-select { float: right; margin-left: 10px; background: #444; color: white; border: none; border-radius: 3px; cursor: pointer; }
+    .score-display { float: right; margin-left: 10px; font-weight: bold; }
+</style>
+
+<h2>Create Your Bracket</h2>
+<input type="text" id="bracketName" placeholder="Enter Bracket Name" value="My 2026 Playoffs Bracket">
+<button onclick="saveBracket()">Save Bracket</button>
+
+<div class="bracket-container">
+    <div class="round" id="west-r1">
+        <div class="matchup" id="w-r1-m1"><div class="team" onclick="advance(this, 'w-r2-m1', 0)">Thunder</div><div class="team" onclick="advance(this, 'w-r2-m1', 0)">Suns</div></div>
+        <div class="matchup" id="w-r1-m2"><div class="team" onclick="advance(this, 'w-r2-m1', 1)">Lakers</div><div class="team" onclick="advance(this, 'w-r2-m1', 1)">Rockets</div></div>
+        <div class="matchup" id="w-r1-m3"><div class="team" onclick="advance(this, 'w-r2-m2', 0)">Nuggets</div><div class="team" onclick="advance(this, 'w-r2-m2', 0)">T-Wolves</div></div>
+        <div class="matchup" id="w-r1-m4"><div class="team" onclick="advance(this, 'w-r2-m2', 1)">Spurs</div><div class="team" onclick="advance(this, 'w-r2-m2', 1)">Blazers</div></div>
+    </div>
+    
+    <div class="round" id="west-r2">
+        <div class="matchup" id="w-r2-m1"><div class="team" onclick="advance(this, 'w-r3-m1', 0)">TBD</div><div class="team" onclick="advance(this, 'w-r3-m1', 0)">TBD</div></div>
+        <div class="matchup" id="w-r2-m2"><div class="team" onclick="advance(this, 'w-r3-m1', 1)">TBD</div><div class="team" onclick="advance(this, 'w-r3-m1', 1)">TBD</div></div>
+    </div>
+
+    <div class="round" id="west-r3">
+        <div class="matchup" id="w-r3-m1"><div class="team" onclick="advance(this, 'finals-west')">TBD</div><div class="team" onclick="advance(this, 'finals-west')">TBD</div></div>
+    </div>
+
+    <div class="finals">
+        <h3>NBA FINALS</h3>
+        <div class="matchup" id="finals-m">
+            <div class="team" id="finals-west" onclick="declareWinner(this)">TBD</div>
+            <div class="team" id="finals-east" onclick="declareWinner(this)">TBD</div>
+        </div>
+        <h2 id="champion" style="color: #00f2fe; margin-top: 20px;"></h2>
+    </div>
+
+    <div class="round" id="east-r3">
+        <div class="matchup" id="e-r3-m1"><div class="team" onclick="advance(this, 'finals-east')">TBD</div><div class="team" onclick="advance(this, 'finals-east')">TBD</div></div>
+    </div>
+
+    <div class="round" id="east-r2">
+        <div class="matchup" id="e-r2-m1"><div class="team" onclick="advance(this, 'e-r3-m1', 0)">TBD</div><div class="team" onclick="advance(this, 'e-r3-m1', 0)">TBD</div></div>
+        <div class="matchup" id="e-r2-m2"><div class="team" onclick="advance(this, 'e-r3-m1', 1)">TBD</div><div class="team" onclick="advance(this, 'e-r3-m1', 1)">TBD</div></div>
+    </div>
+
+    <div class="round" id="east-r1">
+        <div class="matchup" id="e-r1-m1"><div class="team" onclick="advance(this, 'e-r2-m1', 0)">Pistons</div><div class="team" onclick="advance(this, 'e-r2-m1', 0)">Magic</div></div>
+        <div class="matchup" id="e-r1-m2"><div class="team" onclick="advance(this, 'e-r2-m1', 1)">Cavaliers</div><div class="team" onclick="advance(this, 'e-r2-m1', 1)">Raptors</div></div>
+        <div class="matchup" id="e-r1-m3"><div class="team" onclick="advance(this, 'e-r2-m2', 0)">Knicks</div><div class="team" onclick="advance(this, 'e-r2-m2', 0)">Hawks</div></div>
+        <div class="matchup" id="e-r1-m4"><div class="team" onclick="advance(this, 'e-r2-m2', 1)">Celtics</div><div class="team" onclick="advance(this, 'e-r2-m2', 1)">76ers</div></div>
+    </div>
+</div>
+
+<script>
+    let bracketState = {};
+
+    // Helper function to get team name while ignoring any injected score elements
+    function getTeamName(element) {
+        for (let node of element.childNodes) {
+            if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim() !== '') {
+                return node.nodeValue.trim();
+            }
+        }
+        return 'TBD';
+    }
+
+    function advance(element, targetId, slotIndex) {
+        const teamName = getTeamName(element);
+        if(teamName === 'TBD') return;
+
+        const matchup = element.parentElement;
+        const matchupId = matchup.id;
+        const siblings = matchup.querySelectorAll('.team');
+
+        // 1. Remove any previously injected scores/dropdowns in this matchup
+        matchup.querySelectorAll('.score-select, .score-display').forEach(el => el.remove());
+
+        // 2. Save who won this specific matchup
+        bracketState[`${matchupId}-winner`] = teamName;
+
+        // 3. UI Updates: Highlight winner, inject '4', inject dropdown for loser
+        siblings.forEach(sibling => {
+            sibling.classList.remove('selected');
+            const siblingName = getTeamName(sibling);
+
+            if (sibling === element) {
+                sibling.classList.add('selected');
+                const span = document.createElement('span');
+                span.className = 'score-display';
+                span.style.color = 'black'; // text is black when selected
+                span.innerText = '4';
+                sibling.appendChild(span);
+            } else if (siblingName !== 'TBD') {
+                const select = document.createElement('select');
+                select.className = 'score-select';
+                select.innerHTML = '<option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>';
+                
+                // Stop the select click from triggering the team selection!
+                select.onclick = (e) => e.stopPropagation(); 
+                
+                select.onchange = function() {
+                    bracketState[`${matchupId}-loserScore`] = this.value;
+                };
+                
+                // Keep the value if the user clicks back and forth
+                if (bracketState[`${matchupId}-loserScore`]) {
+                    select.value = bracketState[`${matchupId}-loserScore`];
+                }
+                
+                sibling.appendChild(select);
+            }
+        });
+
+        // 4. Advance the team to the next round
+        if (targetId === 'finals-west' || targetId === 'finals-east') {
+            document.getElementById(targetId).innerText = teamName;
+            bracketState[targetId] = teamName;
+            return;
+        }
+
+        const targetMatchup = document.getElementById(targetId);
+        const targetTeams = targetMatchup.getElementsByClassName('team');
+        targetTeams[slotIndex].innerText = teamName; // This overwrites any old scores in the next round
+        bracketState[`${targetId}-slot${slotIndex}`] = teamName;
+    }
+
+    function declareWinner(element) {
+        const teamName = getTeamName(element);
+        if(teamName === 'West Champ' || teamName === 'East Champ' || teamName === 'TBD') return;
+
+        const matchup = element.parentElement;
+        const matchupId = matchup.id; 
+
+        matchup.querySelectorAll('.score-select, .score-display').forEach(el => el.remove());
+        bracketState[`${matchupId}-winner`] = teamName;
+
+        const siblings = matchup.querySelectorAll('.team');
+        siblings.forEach(sibling => {
+            sibling.classList.remove('selected');
+            if (sibling === element) {
+                sibling.classList.add('selected');
+                const span = document.createElement('span');
+                span.className = 'score-display';
+                span.style.color = 'black';
+                span.innerText = '4';
+                sibling.appendChild(span);
+            } else {
+                const select = document.createElement('select');
+                select.className = 'score-select';
+                select.innerHTML = '<option value="">-</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>';
+                select.onclick = (e) => e.stopPropagation();
+                select.onchange = function() { bracketState[`${matchupId}-loserScore`] = this.value; };
+                if (bracketState[`${matchupId}-loserScore`]) select.value = bracketState[`${matchupId}-loserScore`];
+                sibling.appendChild(select);
+            }
+        });
+
+        document.getElementById('champion').innerText = "🏆 " + teamName + " WIN! 🏆";
+        bracketState['champion'] = teamName;
+    }
+
+    function saveBracket() {
+        const tbdExists = Array.from(document.querySelectorAll('.team')).some(team => getTeamName(team) === 'TBD');
+        const championSelected = document.getElementById('champion').innerText !== '';
+        
+        const isAdmin = ("{{ current_user.is_admin }}" === "True");
+
+        // Admin is allowed to save an incomplete bracket for real-world updates
+        if (!isAdmin && (tbdExists || !championSelected)) {
+            alert("Hold up! Please complete all bracket picks before saving.");
+            return;
+        }
+
+        // --- NEW: Validate Score Inputs ---
+        const selects = document.querySelectorAll('.score-select');
+        for (let select of selects) {
+            if (select.value !== "" && !['0', '1', '2', '3'].includes(select.value)) {
+                alert("Error: Loser score must be 0, 1, 2, or 3.");
+                return; 
+            }
+        }
+
+        const name = document.getElementById('bracketName').value;
+        fetch('/api/save_bracket', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, data: bracketState })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            window.location.href = '/'; 
+        });
+    }
+
+</script>
+{% endblock %}

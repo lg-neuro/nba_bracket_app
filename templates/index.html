@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Welcome, {{ current_user.username }}!</h2>
+    <a href="/bracket"><button style="background-color: #00f2fe; color: black; font-size: 16px;">+ Create New Bracket</button></a>
+    
+    <h3 style="margin-top: 30px;">Your Brackets:</h3>
+    <ul style="list-style-type: none; padding: 0;">
+        {% for bracket in brackets %}
+            <li style="margin-bottom: 15px; font-size: 18px; display: flex; align-items: center; gap: 15px;">
+                <a href="{{ url_for('view_bracket', bracket_id=bracket.id) }}" style="font-weight: bold; text-decoration: underline;">
+                    {{ bracket.name }}
+                </a> 
+                <span class="local-time" data-utc="{{ bracket.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">Loading time...</span>
+                
+                <form action="{{ url_for('delete_bracket', bracket_id=bracket.id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to delete this bracket? This cannot be undone.');">
+                    <button type="submit" style="background-color: #ff4d4d; color: white; padding: 5px 10px; margin: 0; font-size: 12px; cursor: pointer;">Delete</button>
+                </form>
+            </li>
+        {% else %}
+            <p>You haven't created any brackets yet.</p>
+        {% endfor %}
+    </ul>
+{% endblock %}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Playoff Bracket</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        a { color: #4facfe; text-decoration: none; }
+        .nav { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #333; }
+        button, input { padding: 10px; margin: 5px 0; border-radius: 4px; border: none; }
+        button { background-color: #4facfe; color: white; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #00f2fe; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="/">Home</a> | 
+            {% if current_user.is_authenticated %}
+                <a href="/leagues">Leagues</a> | 
+                <a href="/logout">Logout ({{ current_user.username }})</a>
+            {% else %}
+                <a href="/login">Login</a> | <a href="/register">Register</a>
+            {% endif %}
+        </div>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul style="color: #ff4d4d;">
+                {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Find every span with the class 'local-time'
+            const timeSpans = document.querySelectorAll('.local-time');
+            
+            timeSpans.forEach(span => {
+                // Grab the UTC string we securely passed from Python
+                const utcDate = new Date(span.getAttribute('data-utc'));
+                
+                // Format it nicely to match your YYYY-MM-DD at HH:MM style
+                const year = utcDate.getFullYear();
+                const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+                const day = String(utcDate.getDate()).padStart(2, '0');
+                const hours = String(utcDate.getHours()).padStart(2, '0');
+                const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+                
+                // Update the text on the screen for the user
+                span.innerText = `${year}-${month}-${day} at ${hours}:${minutes}`;
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+

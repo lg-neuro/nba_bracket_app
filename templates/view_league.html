@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+
+    <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center;">
+        <a href="/leagues"><button>Back to Leagues Hub</button></a>
+        
+        {% if league.creator_id == current_user.id %}
+            <form action="{{ url_for('delete_league', league_id=league.id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to delete this league? The brackets inside it will NOT be deleted, but they will be removed from the league.');">
+                <button type="submit" style="background-color: #ff4d4d; color: white;">Delete League</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <h2 style="color: #00f2fe; font-size: 32px; margin-top: 20px;">{{ league.name }}</h2>
+    <p>Brackets in this competition: {{ league.brackets|length }}</p>
+
+    <div style="margin-top: 30px;">
+        {% for bracket in league.brackets %}
+            <div style="background-color: #222; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0 0 5px 0;">
+                        <a href="{{ url_for('view_bracket', bracket_id=bracket.id) }}">{{ bracket.name }}</a>
+                    </h3>
+                    <p style="margin: 0; color: #aaa; font-size: 14px;">
+                        Submitted by: <strong>{{ bracket.owner.username }}</strong>
+                    </p>
+                </div>
+                <div style="font-size: 24px; font-weight: bold; color: #00f2fe;">
+                    {{ get_bracket_score(bracket.data) }} pts
+                </div>
+            </div>
+        {% else %}
+            <p style="color: #aaa;">Nobody has joined this league yet.</p>
+        {% endfor %}
+    </div>
+{% endblock %}

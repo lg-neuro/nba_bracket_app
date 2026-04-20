@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Leagues Hub</h2>
+    
+    <div style="background-color: #222; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
+        <h3>Create a New League</h3>
+        <form action="/leagues" method="POST" style="margin: 0;">
+            <input type="text" name="league_name" placeholder="League Name" required>
+            <button type="submit" style="background-color: #00f2fe; color: black;">Create League</button>
+        </form>
+    </div>
+
+    <h3>All Leagues</h3>
+    <ul style="list-style-type: none; padding: 0;">
+        {% for league in leagues %}
+            <li style="background-color: #1a1a1a; margin-bottom: 15px; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <a href="{{ url_for('view_league', league_id=league.id) }}" style="font-size: 20px; font-weight: bold;">{{ league.name }}</a>
+                    <p style="margin: 5px 0 0 0; color: #aaa; font-size: 14px;">{{ league.brackets|length }} Brackets joined</p>
+                </div>
+                
+                <div>
+                    {% if available_brackets %}
+                        <form action="{{ url_for('join_league', league_id=league.id) }}" method="POST" style="margin: 0;">
+                            <select name="bracket_id" style="padding: 8px; border-radius: 4px; background: #333; color: white; border: none;">
+                                {% for b in available_brackets %}
+                                    <option value="{{ b.id }}">{{ b.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" style="background-color: #4facfe;">Join League</button>
+                        </form>
+                    {% else %}
+                        <span style="color: #aaa; font-size: 14px;">No available brackets to join with.</span>
+                    {% endif %}
+                </div>
+            </li>
+        {% else %}
+            <p>No leagues exist yet. Be the first to create one!</p>
+        {% endfor %}
+    </ul>
+{% endblock %}

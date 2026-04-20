@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .bracket-container { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
+    .round { display: flex; flex-direction: column; justify-content: space-around; height: 600px; width: 200px; }
+    .matchup { background: #222; border-radius: 8px; margin: 10px 0; display: flex; flex-direction: column; }
+    .team { padding: 10px; border: 1px solid #333; position: relative; }
+    .finals { width: 300px; text-align: center; }
+    .selected-pick { color: #4facfe; font-weight: bold; }
+</style>
+
+<div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center;">
+    <a href="/"><button>Back to Dashboard</button></a>
+    
+    <form action="{{ url_for('delete_bracket', bracket_id=bracket.id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to delete this bracket? This cannot be undone.');">
+        <button type="submit" style="background-color: #ff4d4d; color: white;">Delete Bracket</button>
+    </form>
+    
+    {% if current_user.is_admin %}
+    <form action="{{ url_for('set_official', bracket_id=bracket.id) }}" method="POST" style="margin: 0; margin-left: auto;">
+        <button type="submit" style="background-color: gold; color: black; font-weight: bold; padding: 10px 20px;">⭐ Set as Official Real-World Results</button>
+    </form>
+    {% endif %}
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: end;">
+    <div>
+        <h2>{{ bracket.name }}</h2>
+        <span class="local-time" data-utc="{{ bracket.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">Loading time...</span>
+    </div>
+    <div style="background: #222; padding: 15px 30px; border-radius: 8px; border: 2px solid #4facfe;">
+        <h3 style="margin: 0; color: #4facfe;">Total Score: {{ get_bracket_score(bracket.data) }} pts</h3>
+    </div>
+</div>
+
+<div class="bracket-container">
+    <div class="round" id="west-r1">
+        <div class="matchup" id="w-r1-m1"><div class="team">Thunder</div><div class="team">Suns</div></div>
+        <div class="matchup" id="w-r1-m2"><div class="team">Lakers</div><div class="team">Rockets</div></div>
+        <div class="matchup" id="w-r1-m3"><div class="team">Nuggets</div><div class="team">T-Wolves</div></div>
+        <div class="matchup" id="w-r1-m4"><div class="team">Spurs</div><div class="team">Blazers</div></div>
+    </div>
+    
+    <div class="round" id="west-r2">
+        <div class="matchup" id="w-r2-m1">
+            <div class="team">{{ bracket_data.get('w-r2-m1-slot0', 'TBD') }}</div>
+            <div class="team">{{ bracket_data.get('w-r2-m1-slot1', 'TBD') }}</div>
+        </div>
+        <div class="matchup" id="w-r2-m2">
+            <div class="team">{{ bracket_data.get('w-r2-m2-slot0', 'TBD') }}</div>
+            <div class="team">{{ bracket_data.get('w-r2-m2-slot1', 'TBD') }}</div>
+        </div>
+    </div>
+
+    <div class="round" id="west-r3">
+        <div class="matchup" id="w-r3-m1">
+            <div class="team">{{ bracket_data.get('w-r3-m1-slot0', 'TBD') }}</div>
+            <div class="team">{{ bracket_data.get('w-r3-m1-slot1', 'TBD') }}</div>
+        </div>
+    </div>
+
+    <div class="finals">
+        <h3>NBA FINALS</h3>
+        <div class="matchup" id="finals-m">
+            <div class="team">{{ bracket_data.get('finals-west', 'TBD') }}</div>
+            <div class="team">{{ bracket_data.get('finals-east', 'TBD') }}</div>
+        </div>
+        {% if bracket_data.get('champion') %}
+            <h2 id="champion" style="color: #00f2fe; margin-top: 20px;">🏆 {{ bracket_data.get('champion') }} WIN! 🏆</h2>
+        {% endif %}
+    </div>
+
+    <div class="round" id="east-r3">
+        <div class="matchup" id="e-r3-m1">
+            <div class="team">{{ bracket_data.get('e-r3-m1-slot0', 'TBD') }}</div>
+            <div class="team">{{ bracket_data.get('e-r3-m1-slot1', 'TBD') }}</div>
+        </div>
+    </div>
+
+    <div class="round" id="east-r2">
+        <div class="matchup" id="e-r2-m1">
+            <div class="team">{{ bracket_data.get('e-r2-m1-slot0', 'TBD') }}</div>
+            <div class="team">{{ bracket_data.get('e-r2-m1-slot1', 'TBD') }}</div>
+        </div>
+        <div class="matchup" id="e-r2-m2">
+            <div class="team">{{ bracket_data.get('e-r2-m2-slot0', 'TBD') }}</div>
+            <div class="team">{{ bracket_data.get('e-r2-m2-slot1', 'TBD') }}</div>
+        </div>
+    </div>
+
+    <div class="round" id="east-r1">
+        <div class="matchup" id="e-r1-m1"><div class="team">Pistons</div><div class="team">Magic</div></div>
+        <div class="matchup" id="e-r1-m2"><div class="team">Cavaliers</div><div class="team">Raptors</div></div>
+        <div class="matchup" id="e-r1-m3"><div class="team">Knicks</div><div class="team">Hawks</div></div>
+        <div class="matchup" id="e-r1-m4"><div class="team">Celtics</div><div class="team">76ers</div></div>
+    </div>
+</div>
+
+<script type="application/json" id="bracket-data-json">
+    {{ bracket_data | tojson }}
+</script>
+
+<script>
+    // Read the JSON from the script block above
+    const bracketData = JSON.parse(document.getElementById('bracket-data-json').textContent);
+    
+    // An array of all our explicit matchup IDs
+    const matchupIds = [
+        'w-r1-m1', 'w-r1-m2', 'w-r1-m3', 'w-r1-m4', 
+        'w-r2-m1', 'w-r2-m2', 'w-r3-m1', 'finals-m', 
+        'e-r3-m1', 'e-r2-m1', 'e-r2-m2', 
+        'e-r1-m1', 'e-r1-m2', 'e-r1-m3', 'e-r1-m4'
+    ];
+    
+    matchupIds.forEach(id => {
+        const matchupDiv = document.getElementById(id);
+        if (!matchupDiv) return;
+        
+        const winner = bracketData[`${id}-winner`];
+        const loserScore = bracketData[`${id}-loserScore`];
+        
+        if (winner) {
+            const teams = matchupDiv.querySelectorAll('.team');
+            teams.forEach(team => {
+                const teamName = team.innerText.trim();
+                
+                // If this team is the winner, color it and add '4'
+                if (teamName === winner) {
+                    team.classList.add('selected-pick');
+                    team.innerHTML += '<span style="float: right; color: #fff; font-weight: bold;">4</span>';
+                } 
+                // If it's the loser (and not TBD), add their score if they inputted one
+                else if (teamName !== 'TBD') {
+                    if (loserScore) {
+                        team.innerHTML += `<span style="float: right; color: #aaa;">${loserScore}</span>`;
+                    } else {
+                        team.innerHTML += `<span style="float: right; color: #555;">-</span>`;
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
